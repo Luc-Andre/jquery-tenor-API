@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Tenor gif API jquery skeleton</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+<style>
+body{
+  background-color:black;
+}
+
+img{
+  height: 125px;
+  width: 125px;
+  border-radius:15px;
+  border-color:grey;
+  border-style: solid;
+  object-fit: cover;
+}
+
+@media only screen and (max-width : 549px) {
+    img {
+        height: 300px;
+        width: 300px;
+    }
+}
+
+@media only screen and (min-width : 775px) {
+    img {
+        height: 200px;
+        width: 200px;
+    }
+}
+
+@media only screen and (min-width : 1150px) {
+    img {
+        height: 300px;
+        width: 300px;
+    }
+}
+
+.title{
+  text-align:center;
+  color:white;
+}
+
+h5{
+  color:grey;
+  text-align:center;
+  margin-top:-25px;
+}
+
+h1{
+  text-align:center;
+  color:white;
+}
+
+h4{
+  text-align:center;
+}
+
+.warning{
+  text-align:center;
+  background-color:darkred;
+  color:white;
+  
+}
+
+.boutton{
+  background-color:#d3d3d3!important;
+  color:black!important;
+  height: auto!important;
+}
+
+.pagination {
+  display: inline-block;
+}
+
+.pagination a {
+  color: white;
+  float: left;
+  padding: 8px 16px;
+  text-decoration: none;
+}
+
+.center{
+  text-align: center;
+}
+
+.hidden{
+  visibility: hidden;
+}
+
+</style>
+</head>
+<body>
+  <div id="containersource" class="container">
+    <div class="row">
+      <div class="twelve columns">
+        <h1>
+          Tenor gif list API
+        </h1>
+        <h5>
+          searching "Cats"
+        </h5>
+      </div>
+    </div>
+    <div class="row">
+      <div class="twelve columns center">
+        <input id="searchbar" type="text" value="cats" />
+        <input class="center boutton" type="button" value="search" onclick="btnclick()"/>
+      </div>
+    </div>
+    <div id="container" class="center">
+
+    </div>
+  </div>
+<div class="center">
+  <div id="paginator" class="pagination hidden">
+    <a href="#" id="first">&laquo;</a>
+    <a href="#" id="previous"> &#60; </a>
+    <a href="#" id="current">1</a>
+    <a href="#" id="next">&#62;</a>
+    <a href="#" id="last">&raquo;</a>
+  </div>
+</div>
+  
+
+<script>
+//On déclare la liste de liste de gifs et le curseur pour la pagination
+let fullist = [];
+let page = 0;
+
+//pour arrondir une division
+function roundUp(num, precision) {
+  precision = Math.pow(10, precision)
+  return Math.ceil(num * precision) / precision
+}
+
+//appelé quand on change la query ou quand on pagine
+function loadPage() {
+  let container = $( "#container" );
+  container.empty();
+  //var pour row parce qu'on a besoin du scope global
+  var row = $("<div class='row'></div>");
+  for(let i=0; i<fullist[page].length;i++) {
+    if((i % 3 == 0) && (i != 0)){
+      //on append la row si 3 gifs ont été placés
+      container.append( row );
+      //on redéclare row pour écraser la référence 
+      var row = $("<div class='row'></div>"); 
+    }
+    let col = $("<div class='four columns'></div>");
+    let gif = fullist[page][ i ];
+    let imgContainer = $( "<div class='img-container'></div>" );
+    let img = $( "<img>" );
+    img.attr( "src", gif.media_formats.gif.url );
+    imgContainer.append( img );    
+    let title = $( "<h4 class='title'></h4>" );
+    title.html( gif.title);
+    imgContainer.append( title );    
+    col.append( imgContainer );
+    row.append( col );
+  }
+   
+   container.append( row );
+   $("#current").html((page+1)+"/"+(fullist.length));
+}
+
+//listenners pour la pagination
+$( "#first" ).on( "click", function() {
+  if(page != 0){
+    page = 0;
+    loadPage();
+  }
+});
+
+$( "#previous" ).on( "click", function() {
+  page = page - 1;
+  if(page < 0){
+    page = 0;
+  }else{
+    loadPage();
+  }
+});
+
+$( "#last" ).on( "click", function() {
+  if(page != (fullist.length-1)){
+    page = fullist.length-1;
+    loadPage();
+  }
+});
+
+$( "#next" ).on( "click", function() {
+  page = page + 1;
+  if(page >= fullist.length){
+    page = fullist.length-1;
+  }else{
+    loadPage();
+  }
+});
+
+//quand on appuie sur le bouton, on récupère la valeur de la textbox, on appelle l'API pour rechercher les gifs avec le résultat obtenu, on divise le nombre de gis reçu par 9 pour la pagination
+function btnclick() {
+  let search = $("#searchbar").val();
+  $("#container").empty();
+  fullist = [];
+
+  $.getJSON("https://cors-proxy-anywhere-demo.demotestdev.workers.dev/?https://tenor.googleapis.com/v2/search?q="+search+"&key=AIzaSyDXUBS2XlCFVDP1r9r_i6ogui2gEjNyVX4&limit=50", function(json){ 
+
+  let gifs = json.results;
+  let dividor = roundUp((gifs.length-1)/9,0);
+  if(dividor <= 1){
+    $("#paginator").addClass("hidden");
+  }else{
+    $("#paginator").removeClass("hidden");
+  }
+
+  let cursor = 0;
+  for(let y = 0;y<dividor;y++){
+    let tmptab = [];
+    let tmplimit = cursor + 9;
+
+    for (let x = cursor; x<tmplimit; x++){
+      if(typeof gifs[x] != 'undefined'){
+        tmptab.push(gifs[x]);
+      }
+    }
+    cursor = cursor + 9;
+    fullist.push(tmptab);
+  }
+
+  loadPage();
+ });
+  
+} 
+
+</script>
+
+</body>
+</html>
